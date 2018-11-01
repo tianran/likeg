@@ -12,34 +12,34 @@ import scala.collection.mutable.ArrayBuffer
 object LikeGBuilder {
 
   val nnRels: Set[String] = Set(
-    SDRel.xcomp,
-    SDRel.prep,
-    SDRel.poss,
-    SDRel.tmod,
-    SDRel.npadvmod).map(_.toString)
+    SDLabel.xcomp,
+    SDLabel.prep,
+    SDLabel.poss,
+    SDLabel.tmod,
+    SDLabel.npadvmod).map(_.toString)
 
   val advclLike: Set[String] = Set(
-    SDRel.ROOT,
-    SDRel.advcl,
-    SDRel.parataxis).map(_.toString)
+    SDLabel.ROOT,
+    SDLabel.advcl,
+    SDLabel.parataxis).map(_.toString)
 
   val clauseArgRels: Set[String] = Set(
-    SDRel.ccomp,
-    SDRel.csubj,
-    SDRel.csubjpass,
-    SDRel.pcomp).map(_.toString)
+    SDLabel.ccomp,
+    SDLabel.csubj,
+    SDLabel.csubjpass,
+    SDLabel.pcomp).map(_.toString)
 
   val clauseRels: Set[String] = advclLike ++ clauseArgRels
 
   val coreArgRels: Set[String] = Set(
-    SDRel.nsubj,
-    SDRel.nsubjpass,
-    SDRel.dobj,
-    SDRel.iobj).map(_.toString)
+    SDLabel.nsubj,
+    SDLabel.nsubjpass,
+    SDLabel.dobj,
+    SDLabel.iobj).map(_.toString)
 
   val argRels: Set[String] = coreArgRels ++ clauseArgRels ++ Array(
-    SDRel.prep,
-    SDRel.pobj).map(_.toString)
+    SDLabel.prep,
+    SDLabel.pobj).map(_.toString)
 
   def fromSDTree(sdtree: Tree[SDTreeNode]): LikeG = {
     import RelBuilder._
@@ -49,7 +49,7 @@ object LikeGBuilder {
 
     def countChildrenInConj(n: AuxTreeNode, cond: AuxTreeNode => Boolean) = {
       def loop(x: AuxTreeNode, c: Int): Int = {
-        if (x.rel == SDRel.conj.toString) {
+        if (x.rel == SDLabel.conj.toString) {
           val xp = auxtree.getParent(x)
           if (xp != null) {
             val nc = c + xp.children.count(y => auxtree.linear.ordering.lt(n, y) && cond(y))
@@ -61,12 +61,12 @@ object LikeGBuilder {
     }
 
     def hasConj(n: AuxTreeNode): Boolean = n.getOrUpdate("__hasConj", {
-      n.children.exists(_.rel == SDRel.conj.toString)
+      n.children.exists(_.rel == SDLabel.conj.toString)
     })
 
     def allConjDesc(n: AuxTreeNode): ArrayBuffer[AuxTreeNode] = n.getOrUpdate("__allConjDesc", {
       val ret = ArrayBuffer(n)
-      for (x <- auxtree.sortedChildren(n); if x.rel == SDRel.conj.toString) {
+      for (x <- auxtree.sortedChildren(n); if x.rel == SDLabel.conj.toString) {
         ret.appendAll(allConjDesc(x))
       }
       ret
@@ -83,7 +83,7 @@ object LikeGBuilder {
         case Some(v) => newScope.setFeature(k, v)
         case None => //PASS
       }
-      if (n.rel == SDRel.conj.toString) newScope.setFlag("__conj")
+      if (n.rel == SDLabel.conj.toString) newScope.setFlag("__conj")
       n.setFeature("__currentScope", newScope)
       for (c <- n.children[AuxTreeNode]) {
         c.setFeature("__currentScope", if (auxtree.linear.ordering.lt(c, n)) {
@@ -127,7 +127,7 @@ object LikeGBuilder {
 
     def conjStartDown(p: AuxTreeNode, c: AuxTreeNode): ArrayBuffer[(RelInfo, ScopeNode)] = {
       val conjs = ArrayBuffer(p)
-      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDRel.conj.toString) {
+      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDLabel.conj.toString) {
         conjs.appendAll(allConjDesc(x))
       }
 
@@ -214,7 +214,7 @@ object LikeGBuilder {
             for (c <- n.children[AuxTreeNode]) {
               c.setFeature("__currentScope", if (auxtree.linear.ordering.lt(c, n)) {
                 prevScope
-              } else if (c.rel == SDRel.conj.toString) {
+              } else if (c.rel == SDLabel.conj.toString) {
                 val conjScope = new ScopeNode
                 conjScope.addParent(newScope)
                 conjScope.setFlag("__conj")
@@ -274,7 +274,7 @@ object LikeGBuilder {
             } else {
               ArrayBuffer.empty[(RelInfo, ScopeNode)]
             }
-          } else if (c.rel == SDRel.conj.toString) {
+          } else if (c.rel == SDLabel.conj.toString) {
             val cscope = c.getFeature[ScopeNode]("__currentScope")
             val cargs = auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, p))
               .filter(x => argRels(x.rel))
@@ -301,7 +301,7 @@ object LikeGBuilder {
                 extensions(x)
               case None => if (cargs.nonEmpty) {
                 extensions(cargs.head)
-              } else if (p.rel == SDRel.conj.toString && auxtree.linear.ordering.lt(c, p)) {
+              } else if (p.rel == SDLabel.conj.toString && auxtree.linear.ordering.lt(c, p)) {
                 ArrayBuffer.empty[(RelInfo, ScopeNode)]
               } else {
                 extensions(null)
@@ -309,7 +309,7 @@ object LikeGBuilder {
             }
           }
         case AuxTreeNodeType.NN =>
-          if (c.rel == SDRel.conj.toString) {
+          if (c.rel == SDLabel.conj.toString) {
             if (p.hasFlag("__conjVar")) {
               c.setFeature("__conjVar", p.getFeature[DefVar]("__conjVar"))
             }
@@ -319,7 +319,7 @@ object LikeGBuilder {
           }
 
         case AuxTreeNodeType.COP =>
-          if (c.rel == SDRel.conj.toString) {
+          if (c.rel == SDLabel.conj.toString) {
             val cscope = c.getFeature[ScopeNode]("__currentScope")
             val cargs = auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, p))
               .filter(x => argRels(x.rel))
@@ -346,7 +346,7 @@ object LikeGBuilder {
         returns(c) = ArrayBuffer.empty[RelInfo]
         extensions(c) = ArrayBuffer.empty[(RelInfo, ScopeNode)]
         val conjs = ArrayBuffer(p)
-        for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDRel.conj.toString) {
+        for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDLabel.conj.toString) {
           conjs.appendAll(allConjDesc(x).filter(_.nodeType == AuxTreeNodeType.Relation))
         }
         for (x <- conjs) {

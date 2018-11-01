@@ -1,7 +1,8 @@
 package eg
 
 /** Binary relation
-  *  when pred is null, it represents equality */
+  *  when pred == null, it represents equality
+  *  when arg2 == null, it is a unary relation */
 class BiRel[T >: Null](val pred: T, val arg1: DefVar, val arg2: DefVar) extends EGNode {
   override def toString: String =
     if (pred == null) {

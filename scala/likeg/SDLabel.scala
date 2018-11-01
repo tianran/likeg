@@ -1,8 +1,8 @@
 package likeg
 
 /** Enumeration of Stanford Dependency relations */
-object SDRel extends Enumeration {
-  type SDRel = Value
+object SDLabel extends Enumeration {
+  type SDLabel = Value
 
   val
     ROOT,
@@ -52,5 +52,5 @@ object SDRel extends Enumeration {
     partmod,
     infmod = Value
 
-  lazy val fromString: Map[String, SDRel] = SDRel.values.map(x => x.toString -> x).toMap
+  lazy val fromString: Map[String, SDLabel] = SDLabel.values.map(x => x.toString -> x).toMap
 }

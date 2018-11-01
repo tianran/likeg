@@ -11,7 +11,7 @@ class SDTreeCoNLLBuilder(lines: Iterator[String]) extends TreeBuilder[SDTreeNode
     if (line.nonEmpty) {
       if (line.charAt(0) != '#') {
         val Array(_, surf, _, _, pennPOS, _, headIDStr, headRelStr, _, _) = line.split('\t')
-        append(new SDTreeNode(surf, pennPOS, SDRel.fromString(headRelStr)))
+        append(new SDTreeNode(surf, pennPOS, SDLabel.fromString(headRelStr)))
         parentIndex.append(headIDStr.toInt - 1)
       }
       loop_read(lines.next())
