@@ -67,8 +67,7 @@ Currently, we are able to convert natural language sentences into Existential Gr
 
 * Make conversion:
 ```
-> scala -cp scala/classes likeg.LikeGBuilder data/sample/miami.sd
-> cat data/sample/miami.sd.likeg
+> cat data/sample/miami.sd | scala -cp scala/classes likeg.LikeGBuilder -
 +miami (x0)
 +able >xcomp:2 (x0 x1)
 +to +pull +away +in >pobj:2 (x1 x2)
