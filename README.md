@@ -64,6 +64,7 @@ Currently, we are able to convert natural language sentences into Existential Gr
 34	.	_	.	.	_	3	punct	_	_
 
 ```
+* Generally, one can use a dependency parser such as [SyntaxNet](https://github.com/tensorflow/models/tree/master/research/syntaxnet) to get SD trees from sentences. [Here](https://github.com/tianran/build-syntaxnet) is a derived package of an old (but equally precise) version of SyntaxNet with tested-and-working installation instructions.
 
 * Make conversion:
 ```
