@@ -27,7 +27,7 @@ Currently, we are able to convert natural language sentences into Existential Gr
 
 * The input is SD parse trees in CoNLL format. Found some in the `data/sample` folder:
 ```
-> cat .\data\sample\miami.sd
+> cat data/sample/miami.sd
 1	Miami	_	NOUN	NNP	_	3	nsubj	_	_
 2	was	_	VERB	VBD	_	3	cop	_	_
 3	able	_	ADJ	JJ	_	0	ROOT	_	_
