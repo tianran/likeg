@@ -3,7 +3,7 @@ LIKEG: Logical Inference with Knowledge- and Existential- Graphs
 
 ## Introduction
 
-LIKEG is (will become) a logical inference engine with a natural language interface. It uses Existential Graphs ([intro1](http://www.jfsowa.com/peirce/ms514.htm) [intro2](http://dai.fmph.uniba.sk/~sefranek/kri/handbook/chapter05.pdf)) as the meaning representation. An existential graph is a flexible way to write First Order Logic; it consists of three types of components:
+LIKEG is (will become) a logical inference engine with a natural language interface. It uses Existential Graphs ([intro1](http://www.jfsowa.com/pubs/egtut.pdf) [intro2](http://dai.fmph.uniba.sk/~sefranek/kri/handbook/chapter05.pdf)) as the meaning representation. An existential graph is a flexible way to write First Order Logic; it consists of three types of components:
 
 1. A **Definition Node** defines a variable. Example: `[x1], [x2]`.
 2. A **Relation Node** states a relation between variables. Example: `John(x1), Mary(x2), loves(x1 x2)`. In this work, we only handle unary and binary relations.
