@@ -3,13 +3,13 @@ LIKEG: Logical Inference with Knowledge- and Existential- Graphs
 
 ## Introduction
 
-LIKEG is (will become) a logical inference engine with a natural language interface. It uses Existential Graphs ([intro1](http://www.jfsowa.com/peirce/ms514.htm) [intro2](http://dai.fmph.uniba.sk/~sefranek/kri/handbook/chapter05.pdf)) as the meaning representation. An existential graph is a flexible way to write First Order Logic; it consists of three types of components:
+LIKEG is (will become) a logical inference engine with a natural language interface. It uses Existential Graphs ([intro1](http://www.jfsowa.com/pubs/egtut.pdf) [intro2](http://dai.fmph.uniba.sk/~sefranek/kri/handbook/chapter05.pdf)) as the meaning representation. An existential graph is a flexible way to write First Order Logic; it consists of three types of components:
 
 1. A **Definition Node** defines a variable. Example: `[x1], [x2]`.
 2. A **Relation Node** states a relation between variables. Example: `John(x1), Mary(x2), loves(x1 x2)`. In this work, we only handle unary and binary relations.
 3. A **Scope** is a set that consists of Definition Nodes and Relation Nodes. Requirement from the Existential Graph is that, for any two Scopes, either one is a subset of the other, or the two are disjoint; no other types of intersection is allowed. In other words, all Scopes in an Existential Graph can be modeled by a [tree](https://en.wikipedia.org/wiki/Tree_(data_structure)), where a child is a subset of its parent.
 
-With 1 and 2 in the above, Existential Graphs are able to represent [Knowledge Graphs](https://en.wikipedia.org/wiki/Knowledge_Graph); logically speaking, a Denition Node adds an existential quantifier to the variable, and all facts stated by Relation Nodes are held together with logical conjunction. It is able to store a large set of positive facts but will be difficult to handle negative ones. Thus, Existential Graph adds a *Negation Scope* to negate a subset of variables and facts. Since the negation of an existential quantifier is a universal quantifier, and the negation of logical conjuction is logical disjunction, we get the full representation power of First Order Logic by adding Negation Scopes. Pushing forward this idea, one can even create other kinds of scopes to bring more powerful logic operations, such as counting and general quantifier (e.g. "*__more than two__ students who took the Algebra class*").
+With 1 and 2 in the above, Existential Graphs are able to represent [Knowledge Graphs](https://en.wikipedia.org/wiki/Knowledge_Graph); logically speaking, a Denition Node adds an existential quantifier to the variable, and all facts stated by Relation Nodes are held together with logical conjunction. It is able to store a large set of affirmative facts but will be difficult to handle negative statements. Therefore, Existential Graph adds a *Negation Scope* to negate a subset of variables and facts. Since the negation of an existential quantifier is a universal quantifier, and the negation of logical conjuction is logical disjunction, we get the full representation power of First Order Logic by adding Negation Scopes. Pushing forward this idea, one can even create other kinds of scopes to bring more powerful logic operations, such as counting and general quantifier (e.g. "*__more than two__ students who took the Algebra class*").
 
 ## Natural Language Interface
 
@@ -27,7 +27,7 @@ Currently, we are able to convert natural language sentences into Existential Gr
 
 * The input is SD parse trees in CoNLL format. Found some in the `data/sample` folder:
 ```
-> cat .\data\sample\miami.sd
+> cat data/sample/miami.sd
 1	Miami	_	NOUN	NNP	_	3	nsubj	_	_
 2	was	_	VERB	VBD	_	3	cop	_	_
 3	able	_	ADJ	JJ	_	0	ROOT	_	_
@@ -64,11 +64,11 @@ Currently, we are able to convert natural language sentences into Existential Gr
 34	.	_	.	.	_	3	punct	_	_
 
 ```
+* Generally, one can use a dependency parser such as [SyntaxNet](https://github.com/tensorflow/models/tree/master/research/syntaxnet) to get SD trees from sentences. [Here](https://github.com/tianran/build-syntaxnet) is a derived package of an old (but equally precise) version of SyntaxNet with tested-and-working installation instructions.
 
 * Make conversion:
 ```
-> scala -cp scala/classes likeg.LikeGBuilder data/sample/miami.sd
-> cat data/sample/miami.sd.likeg
+> cat data/sample/miami.sd | scala -cp scala/classes likeg.LikeGBuilder -
 +miami (x0)
 +able >xcomp:2 (x0 x1)
 +to +pull +away +in >pobj:2 (x1 x2)
