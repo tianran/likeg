@@ -132,31 +132,29 @@ object LikeGBuilder {
       }
 
       val ret = ArrayBuffer.empty[(RelInfo, ScopeNode)]
-      val avar = new DefVar
-      var flag = false
+      val bvars = ArrayBuffer.empty[DefVar]
       if (nnRels(c.label)) {
         for (x <- conjs) {
           if (x.src.head.pennPOS.startsWith("NNP")) {
-            val xvar = x.getFeature[DefVar]("__normalVar")
-            val xscope = x.getFeature[ScopeNode]("__currentScope")
-            xscope.append(equality(xvar, avar))
-            flag = true
+            bvars.append(x.getFeature[DefVar]("__normalVar"))
           } else {
             ret.append(nnRelExtension(x))
           }
         }
       } else {
-        for (x <- conjs) {
-          val xvar = x.getFeature[DefVar]("__normalVar")
-          val xscope = x.getFeature[ScopeNode]("__currentScope")
-          xscope.append(equality(xvar, avar))
-          flag = true
-        }
+        for (x <- conjs) bvars.append(x.getFeature[DefVar]("__normalVar"))
       }
-      if (flag) {
-        val cscope = c.getFeature[ScopeNode]("__currentScope")
-        cscope.append(avar)
-        ret.append((startDown(avar, c.label), cscope))
+      if (bvars.length >= 2) {
+        val avar = new DefVar
+        for (bvar <- bvars) {
+          bvar.getFeature[ScopeNode]("__ScopeNode").append(equality(bvar, avar))
+        }
+        val ppscope = p.getFeature[ScopeNode]("__normalVar").getFeature[ScopeNode]("__ScopeNode").parent
+        ppscope.append(avar)
+        ret.append((startDown(avar, c.label), ppscope))
+      } else if (bvars.length == 1) {
+        val bvar = bvars.head
+        ret.append((startDown(bvar, c.label), bvar.getFeature[ScopeNode]("__ScopeNode")))
       }
       ret
     }
