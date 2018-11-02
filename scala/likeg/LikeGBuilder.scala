@@ -95,7 +95,7 @@ object LikeGBuilder {
 
       val ret = new DefVar
       newScope.append(ret)
-      if (n.src.head.pennPOS.startsWith("NNP") || countChildrenInConj(n, y => nnRels(y.label)) == 0) {//if not convered by nnRels later, create unary predicate now
+      if (n.src.head.pennPOS.startsWith("NNP") || countChildrenInConj(n, y => nnRels(y.label)) == 0) {//if not covered by nnRels later, create unary predicate now
         newScope.append(relBuilder.finish(goDown(startDown(ret, null), n), null, null))
       }
       n.setFeature("__normalVar", ret)
