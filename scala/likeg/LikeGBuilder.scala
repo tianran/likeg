@@ -10,7 +10,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object LikeGBuilder {
 
-  val nnRels: Set[String] = AuxTreeBuilder.govRels ++ Array(
+  val nnRels: Set[String] = Set(
+    SDLabel.dobj,
+    SDLabel.iobj,
+    SDLabel.pobj,
+    SDLabel.pcomp,
+    SDLabel.acomp,
+    SDLabel.xcomp,
     SDLabel.prep,
     SDLabel.poss,
     SDLabel.tmod,
@@ -51,9 +57,9 @@ object LikeGBuilder {
     def existsChildrenInConj(n: AuxTreeNode, cond: AuxTreeNode => Boolean) = {
       def loop(x: AuxTreeNode): Boolean = (x.label == SDLabel.conj.toString) && {
         val xp = auxtree.getParent(x)
-        if (xp != null) {
+        (xp != null) && {
           xp.children.exists(y => auxtree.linear.ordering.lt(n, y) && cond(y)) || loop(xp)
-        } else false
+        }
       }
       n.children.exists(cond) || loop(n)
     }
