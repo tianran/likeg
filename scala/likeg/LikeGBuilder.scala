@@ -210,13 +210,14 @@ object LikeGBuilder {
       n.nodeType match {
         case AuxTreeNodeType.Relation =>
           if (inherit.isEmpty) {
-            if (argRels(n.label)) {
-              if (n.children.forall(y => !argRels(y.label))) {
+            auxtree.sortedChildren(n).find(y => argRels(y.label)) match {
+              case Some(y) =>
+                if (!argRels(n.label) && !existsChildrenInConj(n,
+                  x => auxtree.linear.ordering.lt(y, x) && x.label != SDLabel.conj.toString)) {
+                  allConjDesc(n).foreach(_.nodeType = AuxTreeNodeType.NN)
+                }
+              case None =>
                 allConjDesc(n).foreach(_.nodeType = AuxTreeNodeType.NN)
-              }
-            } else if (auxtree.sortedChildren(n).takeWhile(auxtree.linear.ordering.lt(_, n)).forall(y => !argRels(y.label)) ||
-              !existsChildrenInConj(n, _.label != SDLabel.conj.toString)) {
-              allConjDesc(n).foreach(_.nodeType = AuxTreeNodeType.NN)
             }
           } else if (clauseRels(n.label)) {
             val c = n.children.count(_.label != SDLabel.conj.toString)
