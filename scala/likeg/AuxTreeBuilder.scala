@@ -13,7 +13,7 @@ object AuxTreeBuilder {
     auxN
   })
 
-  val modRels = Set(
+  val toMerge = Set(
     SDLabel.goeswith,
     SDLabel.mwe,
     SDLabel.prt,
@@ -26,26 +26,30 @@ object AuxTreeBuilder {
     SDLabel.aux,
     SDLabel.auxpass)
 
-  val punctRels = Set(
+  val toPurge = Set(
     SDLabel.punct,
     SDLabel.discourse,
     SDLabel.cop)
+
+  val toNeg = Set(SDLabel.neg)
+  val toQuant = Set(SDLabel.det, SDLabel.predet, SDLabel.num)
+  val toCC = Set(SDLabel.cc, SDLabel.preconj)
+  val toMark = Set(SDLabel.mark)
 
   def hasConj(sdN: SDTreeNode): Boolean = sdN.getOrUpdate("__hasConj", {
     sdN.children.exists(_.labelSD == SDLabel.conj)
   })
 
-  val inNNPRels = Set(
+  val inNNP = Set(
     SDLabel.poss,
     SDLabel.prep,
-    SDLabel.pobj,
-    SDLabel.pcomp)
+    SDLabel.pobj)
 
-  val depCRels: Set[String] = Set(
+  val depRels: Set[String] = Set(
     SDLabel.partmod,
     SDLabel.infmod).map(_.toString)
 
-  val govCRels: Set[String] = Set(
+  val govRels: Set[String] = Set(
     SDLabel.nsubj,
     SDLabel.nsubjpass,
     SDLabel.dobj,
@@ -73,19 +77,19 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
     if (sdP == null) addChild(vroot, sd2aux(sdN)) else addChild(sd2aux(sdP), sd2aux(sdN))
   }, {_=>})
 
-  /* special rel */
+  /* special labels */
   for (sdN <- sdtree.linear.nodes) {
-    if (modRels(sdN.labelSD)) {
+    if (toMerge(sdN.labelSD)) {
       sd2aux(sdN).label = label_MERGE
-    } else if (punctRels(sdN.labelSD)) {
-      sd2aux(sdN).label = label_PUNCT
-    } else if (sdN.labelSD == SDLabel.neg) {
+    } else if (toPurge(sdN.labelSD)) {
+      sd2aux(sdN).label = label_PURGE
+    } else if (toNeg(sdN.labelSD)) {
       sd2aux(sdN).label = label_NEG
-    } else if (Set(SDLabel.det, SDLabel.predet, SDLabel.num)(sdN.labelSD)) {
+    } else if (toQuant(sdN.labelSD)) {
       sd2aux(sdN).label = label_QUANT
-    } else if (Set(SDLabel.cc, SDLabel.preconj)(sdN.labelSD)) {
+    } else if (toCC(sdN.labelSD)) {
       sd2aux(sdN).label = label_CC
-    } else if (sdN.labelSD == SDLabel.mark) {
+    } else if (toMark(sdN.labelSD)) {
       sd2aux(sdN).label = label_MARK
     }
   }
@@ -93,7 +97,7 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   /* merge NNP */
   for (sdN <- sdtree.linear.nodes; if sdN.pennPOS.startsWith("NNP") && !hasConj(sdN)) {
     val rec = ArrayBuffer.empty[SDTreeNode]
-    def loop(x: SDTreeNode): Unit = if (inNNPRels(x.labelSD)) {
+    def loop(x: SDTreeNode): Unit = if (inNNP(x.labelSD)) {
       val xp = sdtree.getParent(x)
       if (xp != null) {
         rec.append(x)
@@ -126,7 +130,7 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
     if (sdP != null) {
       if (sd2aux(sdP).label == label_MERGE) {
         sd2aux(sdN).label = label_MERGE
-      } else sd2aux(sdP).label = label_PUNCT
+      } else sd2aux(sdP).label = label_PURGE
     }
   }
 
@@ -144,7 +148,7 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
             val xp = sdtree.getParent(x)
             if (xp == sdN) {
               if (rec.length == 1 && n.labelSD == SDLabel.nsubj && hasCop(sdN)) { // "A, which is B ..."
-                sd2aux(n).label = label_PUNCT
+                sd2aux(n).label = label_PURGE
                 sd2aux(sdN).label = SDLabel.appos.toString
               }
               rec.foreach(sd2aux(_).label = label_MERGE)
@@ -180,7 +184,7 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   }, {_ =>})
   root.recur({x =>
     for (c <- x.children.toArray; if c.label.charAt(0) == '_') {
-      if (c.label != label_PUNCT) {
+      if (c.label != label_PURGE) {
         x.scopeInfo.getOrElseUpdate(c.label, ArrayBuffer.empty) ++= c.src
       }
       purge(x, c)
@@ -190,8 +194,8 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   /* next, we set nodeType */
   root.recur({x =>
     for (c <- x.children[AuxTreeNode]) {
-      if (depCRels(c.label)) c.nodeType = AuxTreeNodeType.Relation
-      if (govCRels(c.label)) x.nodeType = AuxTreeNodeType.Relation
+      if (depRels(c.label)) c.nodeType = AuxTreeNodeType.Relation
+      if (govRels(c.label)) x.nodeType = AuxTreeNodeType.Relation
     }
   }, {_ =>})
 

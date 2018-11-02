@@ -33,10 +33,10 @@ object RelBuilder {
     (arg1, sl1, (sgn, n) :: lst)
   }
 
-  def turnDown(ri: RelInfo): RelInfo = {
-    val (arg1, sl1, (nup, n) :: tail) = ri
-    assert(nup == nodeUp)
-    (arg1, sl1, (nodeCusp, n) :: tail)
+  def turnUp(ri: RelInfo): RelInfo = {
+    val (arg1, sl1, (cusp, n) :: tail) = ri
+    assert(cusp == nodeCusp)
+    (arg1, sl1, (nodeUp, n) :: tail)
   }
 
   def equality(arg1: DefVar, arg2: DefVar): BiRel[Pred] = new BiRel[Pred](null, arg1, arg2)

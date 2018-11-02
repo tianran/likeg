@@ -7,8 +7,8 @@ import scala.collection.mutable.ArrayBuffer
 
 object AuxTreeNode {
 
-  val Array(label_MERGE, label_PUNCT, label_NEG, label_QUANT, label_CC, label_MARK) =
-    Array("_MERGE", "_PUNCT", "_NEG", "_QUANT", "_CC", "_MARK")
+  val Array(label_MERGE, label_PURGE, label_NEG, label_QUANT, label_CC, label_MARK) =
+    Array("_MERGE", "_PURGE", "_NEG", "_QUANT", "_CC", "_MARK")
 
   object AuxTreeNodeType extends Enumeration {
     val Relation, COP, NN = Value
@@ -25,7 +25,7 @@ class AuxTreeNode extends TreeNode {
   /** largely the same as labelSD in likeg.SDTreeNode
     * but also include the following special labels:
     * _MERGE: this node should be merged to parent
-    * _PUNCT: punctuation
+    * _PURGE: this node and all its descendants should be deleted
     * _NEG: negation
     * _QUANT: quantifiers (determiners & numerics)
     * _CC: conjugation marker
