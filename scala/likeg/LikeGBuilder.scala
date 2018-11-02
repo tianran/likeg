@@ -49,7 +49,7 @@ object LikeGBuilder {
 
     def countChildrenInConj(n: AuxTreeNode, cond: AuxTreeNode => Boolean) = {
       def loop(x: AuxTreeNode, c: Int): Int = {
-        if (x.rel == SDLabel.conj.toString) {
+        if (x.label == SDLabel.conj.toString) {
           val xp = auxtree.getParent(x)
           if (xp != null) {
             val nc = c + xp.children.count(y => auxtree.linear.ordering.lt(n, y) && cond(y))
@@ -61,12 +61,12 @@ object LikeGBuilder {
     }
 
     def hasConj(n: AuxTreeNode): Boolean = n.getOrUpdate("__hasConj", {
-      n.children.exists(_.rel == SDLabel.conj.toString)
+      n.children.exists(_.label == SDLabel.conj.toString)
     })
 
     def allConjDesc(n: AuxTreeNode): ArrayBuffer[AuxTreeNode] = n.getOrUpdate("__allConjDesc", {
       val ret = ArrayBuffer(n)
-      for (x <- auxtree.sortedChildren(n); if x.rel == SDLabel.conj.toString) {
+      for (x <- auxtree.sortedChildren(n); if x.label == SDLabel.conj.toString) {
         ret.appendAll(allConjDesc(x))
       }
       ret
@@ -79,11 +79,11 @@ object LikeGBuilder {
       val prevScope = n.getFeature[ScopeNode]("__currentScope")
       val newScope = new ScopeNode
       newScope.addParent(prevScope)
-      for (k <- Array(AuxTreeNode.srel_NEG, AuxTreeNode.srel_QUANT, AuxTreeNode.srel_CC)) n.scopeInfo.get(k) match {
+      for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_QUANT, AuxTreeNode.label_CC)) n.scopeInfo.get(k) match {
         case Some(v) => newScope.setFeature(k, v)
         case None => //PASS
       }
-      if (n.rel == SDLabel.conj.toString) newScope.setFlag("__conj")
+      if (n.label == SDLabel.conj.toString) newScope.setFlag("__conj")
       n.setFeature("__currentScope", newScope)
       for (c <- n.children[AuxTreeNode]) {
         c.setFeature("__currentScope", if (auxtree.linear.ordering.lt(c, n)) {
@@ -95,7 +95,7 @@ object LikeGBuilder {
 
       val ret = new DefVar
       newScope.append(ret)
-      if (n.src.head.pennPOS.startsWith("NNP") || countChildrenInConj(n, y => nnRels(y.rel)) == 0) {//if not convered by nnRels later, create unary predicate now
+      if (n.src.head.pennPOS.startsWith("NNP") || countChildrenInConj(n, y => nnRels(y.label)) == 0) {//if not convered by nnRels later, create unary predicate now
         newScope.append(relBuilder.finish(goDown(startDown(ret, null), n), null, null))
       }
       n.setFeature("__normalVar", ret)
@@ -108,8 +108,8 @@ object LikeGBuilder {
       prevScope.append(ret)
       val newScope = new ScopeNode
       newScope.addParent(prevScope)
-      n.scopeInfo.get(AuxTreeNode.srel_MARK) match {
-        case Some(v) => newScope.setFeature(AuxTreeNode.srel_MARK, v)
+      n.scopeInfo.get(AuxTreeNode.label_MARK) match {
+        case Some(v) => newScope.setFeature(AuxTreeNode.label_MARK, v)
         case None => //PASS
       }
       ret.setFeature("__reification", newScope)
@@ -127,14 +127,14 @@ object LikeGBuilder {
 
     def conjStartDown(p: AuxTreeNode, c: AuxTreeNode): ArrayBuffer[(RelInfo, ScopeNode)] = {
       val conjs = ArrayBuffer(p)
-      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDLabel.conj.toString) {
+      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.label == SDLabel.conj.toString) {
         conjs.appendAll(allConjDesc(x))
       }
 
       val ret = ArrayBuffer.empty[(RelInfo, ScopeNode)]
       val avar = new DefVar
       var flag = false
-      if (nnRels(c.rel)) {
+      if (nnRels(c.label)) {
         for (x <- conjs) {
           if (x.src.head.pennPOS.startsWith("NNP")) {
             val xvar = x.getFeature[DefVar]("__normalVar")
@@ -156,7 +156,7 @@ object LikeGBuilder {
       if (flag) {
         val cscope = c.getFeature[ScopeNode]("__currentScope")
         cscope.append(avar)
-        ret.append((startDown(avar, c.rel), cscope))
+        ret.append((startDown(avar, c.label), cscope))
       }
       ret
     }
@@ -172,15 +172,15 @@ object LikeGBuilder {
         }
         avar
       } else n.getFeature[DefVar]("__normalVar")
-      ArrayBuffer(startUp(ret, n.rel))
+      ArrayBuffer(startUp(ret, n.label))
     }
 
     auxtree.root.setFeature("__inheritHalf", ArrayBuffer.empty[(RelInfo, ScopeNode)])
     auxtree.recurSorted({n =>
       val inherit = n.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__inheritHalf")
       if (n.nodeType != AuxTreeNodeType.NN) {// fail-safe rule: if no enough args, make it NN
-        val c = countChildrenInConj(n, y => argRels(y.rel)) //each argRel will return
-        if (c == 0 || (c == 1 && (clauseRels(n.rel) || (inherit.isEmpty && !argRels(n.rel))))) {
+        val c = countChildrenInConj(n, y => argRels(y.label)) //each argRel will return
+        if (c == 0 || (c == 1 && (clauseRels(n.label) || (inherit.isEmpty && !argRels(n.label))))) {
           allConjDesc(n).foreach(_.nodeType = AuxTreeNodeType.NN)
         }
       }
@@ -191,10 +191,10 @@ object LikeGBuilder {
           n.setFeature("__returns", returns)
 
           val extensions = mutable.Map.empty[AuxTreeNode, ArrayBuffer[(RelInfo, ScopeNode)]]
-          extensions(null) = if (clauseRels(n.rel)) {
+          extensions(null) = if (clauseRels(n.label)) {
             val svar = scopeVar(n)
             for ((half, scope) <- inherit) {
-              scope.append(relBuilder.finish(half, n.rel, svar))
+              scope.append(relBuilder.finish(half, n.label, svar))
             }
             ArrayBuffer.empty[(RelInfo, ScopeNode)]
           } else {
@@ -203,10 +203,10 @@ object LikeGBuilder {
           n.setFeature("__extensions", extensions)
 
           val prevScope = n.getFeature[ScopeNode]("__currentScope")
-          if (n.scopeInfo.contains(AuxTreeNode.srel_NEG) || hasConj(n)) {
+          if (n.scopeInfo.contains(AuxTreeNode.label_NEG) || hasConj(n)) {
             val newScope = new ScopeNode
             newScope.addParent(prevScope)
-            for (k <- Array(AuxTreeNode.srel_NEG, AuxTreeNode.srel_CC)) n.scopeInfo.get(k) match {
+            for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_CC)) n.scopeInfo.get(k) match {
               case Some(v) => newScope.setFeature(k, v)
               case None => //PASS
             }
@@ -214,11 +214,11 @@ object LikeGBuilder {
             for (c <- n.children[AuxTreeNode]) {
               c.setFeature("__currentScope", if (auxtree.linear.ordering.lt(c, n)) {
                 prevScope
-              } else if (c.rel == SDLabel.conj.toString) {
+              } else if (c.label == SDLabel.conj.toString) {
                 val conjScope = new ScopeNode
                 conjScope.addParent(newScope)
                 conjScope.setFlag("__conj")
-                for (k <- Array(AuxTreeNode.srel_NEG, AuxTreeNode.srel_CC)) c.scopeInfo.get(k) match {
+                for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_CC)) c.scopeInfo.get(k) match {
                   case Some(v) => conjScope.setFeature(k, v)
                   case None => //PASS
                 }
@@ -234,7 +234,7 @@ object LikeGBuilder {
             val avar = new DefVar
             n.getFeature[ScopeNode]("__currentScope").append(avar)
             for ((half, scope) <- inherit) {
-              scope.append(relBuilder.finish(half, n.rel, avar))
+              scope.append(relBuilder.finish(half, n.label, avar))
             }
             n.setFeature("__conjVar", avar)
             val nvar = normalVar(n)
@@ -246,13 +246,13 @@ object LikeGBuilder {
                 equality(n.getFeature[DefVar]("__conjVar"), nvar))
             } else {
               for ((half, scope) <- inherit) {
-                scope.append(relBuilder.finish(half, n.rel, nvar))
+                scope.append(relBuilder.finish(half, n.label, nvar))
               }
             }
           }
 
         case AuxTreeNodeType.COP =>
-          val cvar = if (clauseRels(n.rel)) {
+          val cvar = if (clauseRels(n.label)) {
             val ret = scopeVar(n)
             normalVar(n)
             ret
@@ -260,32 +260,32 @@ object LikeGBuilder {
             normalVar(n)
           }
           for ((half, scope) <- inherit) {
-            scope.append(relBuilder.finish(half, n.rel, cvar))
+            scope.append(relBuilder.finish(half, n.label, cvar))
           }
       }
     }, {(p, c) =>
       c.setFeature("__inheritHalf", p.nodeType match {
         case AuxTreeNodeType.Relation =>
-          if (advclLike(c.rel)) {// send scope var to child
+          if (advclLike(c.label)) {// send scope var to child
             if (p.hasFlag("__scopeVar")) {
               val svar = p.getFeature[DefVar]("__scopeVar")
               val scope = svar.getFeature[ScopeNode]("__ScopeNode")
-              ArrayBuffer((startDown(svar, c.rel), scope))
+              ArrayBuffer((startDown(svar, c.label), scope))
             } else {
               ArrayBuffer.empty[(RelInfo, ScopeNode)]
             }
-          } else if (c.rel == SDLabel.conj.toString) {
+          } else if (c.label == SDLabel.conj.toString) {
             val cscope = c.getFeature[ScopeNode]("__currentScope")
             val cargs = auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, p))
-              .filter(x => argRels(x.rel))
-            cargs.reverseIterator.find(x => coreArgRels(x.rel)) match {
+              .filter(x => argRels(x.label))
+            cargs.reverseIterator.find(x => coreArgRels(x.label)) match {
               case Some(x) =>
                 c.setFeature("__inheritFrom", x)
                 x.getFeature[ArrayBuffer[RelInfo]]("__retHalf").map((_, cscope))
               case None => if (cargs.nonEmpty) {
                 c.setFeature("__inheritFrom", cargs.head)
                 cargs.head.getFeature[ArrayBuffer[RelInfo]]("__retHalf").map((_, cscope))
-              } else if (clauseRels(p.rel)) {
+              } else if (clauseRels(p.label)) {
                 ArrayBuffer.empty[(RelInfo, ScopeNode)]
               } else {
                 c.setFeature("__inheritFrom", null)
@@ -295,13 +295,13 @@ object LikeGBuilder {
           } else {// select an appropriate one from __extensions as the __inheritHalf passed to child
             val extensions = p.getFeature[mutable.Map[AuxTreeNode, ArrayBuffer[(RelInfo, ScopeNode)]]]("__extensions")
             val cargs = auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c))
-              .filter(x => argRels(x.rel))
-            cargs.reverseIterator.find(x => coreArgRels(x.rel)) match {
+              .filter(x => argRels(x.label))
+            cargs.reverseIterator.find(x => coreArgRels(x.label)) match {
               case Some(x) =>
                 extensions(x)
               case None => if (cargs.nonEmpty) {
                 extensions(cargs.head)
-              } else if (p.rel == SDLabel.conj.toString && auxtree.linear.ordering.lt(c, p)) {
+              } else if (p.label == SDLabel.conj.toString && auxtree.linear.ordering.lt(c, p)) {
                 ArrayBuffer.empty[(RelInfo, ScopeNode)]
               } else {
                 extensions(null)
@@ -309,7 +309,7 @@ object LikeGBuilder {
             }
           }
         case AuxTreeNodeType.NN =>
-          if (c.rel == SDLabel.conj.toString) {
+          if (c.label == SDLabel.conj.toString) {
             if (p.hasFlag("__conjVar")) {
               c.setFeature("__conjVar", p.getFeature[DefVar]("__conjVar"))
             }
@@ -319,16 +319,16 @@ object LikeGBuilder {
           }
 
         case AuxTreeNodeType.COP =>
-          if (c.rel == SDLabel.conj.toString) {
+          if (c.label == SDLabel.conj.toString) {
             val cscope = c.getFeature[ScopeNode]("__currentScope")
             val cargs = auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, p))
-              .filter(x => argRels(x.rel))
-            cargs.reverseIterator.find(x => coreArgRels(x.rel)) match {
+              .filter(x => argRels(x.label))
+            cargs.reverseIterator.find(x => coreArgRels(x.label)) match {
               case Some(x) =>
                 x.getFeature[ArrayBuffer[RelInfo]]("__retHalf").map((_, cscope))
               case None => if (cargs.nonEmpty) {
                 cargs.head.getFeature[ArrayBuffer[RelInfo]]("__retHalf").map((_, cscope))
-              } else if (clauseRels(p.rel)) {
+              } else if (clauseRels(p.label)) {
                 ArrayBuffer.empty[(RelInfo, ScopeNode)]
               } else {
                 p.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__inheritHalf")
@@ -339,14 +339,14 @@ object LikeGBuilder {
           }
       })
     }, {(p, c) =>
-      if (p.nodeType == AuxTreeNodeType.Relation && argRels(c.rel)) {
+      if (p.nodeType == AuxTreeNodeType.Relation && argRels(c.label)) {
         val cret = c.getFeature[ArrayBuffer[RelInfo]]("__retHalf")
         val returns = p.getFeature[mutable.Map[AuxTreeNode, ArrayBuffer[RelInfo]]]("__returns")
         val extensions = p.getFeature[mutable.Map[AuxTreeNode, ArrayBuffer[(RelInfo, ScopeNode)]]]("__extensions")
         returns(c) = ArrayBuffer.empty[RelInfo]
         extensions(c) = ArrayBuffer.empty[(RelInfo, ScopeNode)]
         val conjs = ArrayBuffer(p)
-        for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.rel == SDLabel.conj.toString) {
+        for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.label == SDLabel.conj.toString) {
           conjs.appendAll(allConjDesc(x).filter(_.nodeType == AuxTreeNodeType.Relation))
         }
         for (x <- conjs) {
@@ -357,13 +357,13 @@ object LikeGBuilder {
       }
     }, {n => n.setFeature("__retHalf", n.nodeType match {
       case AuxTreeNodeType.Relation =>
-        if (clauseRels(n.rel)) {
+        if (clauseRels(n.label)) {
           val svar = n.getFeature[DefVar]("__scopeVar")
-          ArrayBuffer(startUp(svar, n.rel))
+          ArrayBuffer(startUp(svar, n.label))
         } else {
           val returns = n.getFeature[mutable.Map[AuxTreeNode, ArrayBuffer[RelInfo]]]("__returns")
-          val cargs = auxtree.sortedChildren(n).filter(x => argRels(x.rel))
-          cargs.reverseIterator.find(x => coreArgRels(x.rel)) match {
+          val cargs = auxtree.sortedChildren(n).filter(x => argRels(x.label))
+          cargs.reverseIterator.find(x => coreArgRels(x.label)) match {
             case Some(x) =>
               returns(x)
             case None => if (cargs.nonEmpty) {
@@ -376,9 +376,9 @@ object LikeGBuilder {
       case AuxTreeNodeType.NN =>
         conjStartUp(n)
       case AuxTreeNodeType.COP =>
-        if (clauseRels(n.rel)) {
+        if (clauseRels(n.label)) {
           val svar = n.getFeature[DefVar]("__scopeVar")
-          ArrayBuffer(startUp(svar, n.rel))
+          ArrayBuffer(startUp(svar, n.label))
         } else conjStartUp(n)
     })})
     // clean up

@@ -9,7 +9,7 @@ object AuxTreeBuilder {
   def sd2aux(sdN: SDTreeNode): AuxTreeNode = sdN.getOrUpdate("__sd2aux", {
     val auxN = new AuxTreeNode
     auxN.src.append(sdN)
-    auxN.rel = sdN.headRel.toString
+    auxN.label = sdN.labelSD.toString
     auxN
   })
 
@@ -32,7 +32,7 @@ object AuxTreeBuilder {
     SDLabel.cop)
 
   def hasConj(sdN: SDTreeNode): Boolean = sdN.getOrUpdate("__hasConj", {
-    sdN.children.exists(_.headRel == SDLabel.conj)
+    sdN.children.exists(_.labelSD == SDLabel.conj)
   })
 
   val inNNPRels = Set(
@@ -58,7 +58,7 @@ object AuxTreeBuilder {
     SDLabel.xcomp).map(_.toString)
 
   def hasCop(sdN: SDTreeNode): Boolean = sdN.getOrUpdate("__hasCop", {
-    sdN.children.exists(_.headRel == SDLabel.cop)
+    sdN.children.exists(_.labelSD == SDLabel.cop)
   })
 }
 
@@ -75,30 +75,30 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
 
   /* special rel */
   for (sdN <- sdtree.linear.nodes) {
-    if (modRels(sdN.headRel)) {
-      sd2aux(sdN).rel = srel_MERGE
-    } else if (punctRels(sdN.headRel)) {
-      sd2aux(sdN).rel = srel_PUNCT
-    } else if (sdN.headRel == SDLabel.neg) {
-      sd2aux(sdN).rel = srel_NEG
-    } else if (Set(SDLabel.det, SDLabel.predet, SDLabel.num)(sdN.headRel)) {
-      sd2aux(sdN).rel = srel_QUANT
-    } else if (Set(SDLabel.cc, SDLabel.preconj)(sdN.headRel)) {
-      sd2aux(sdN).rel = srel_CC
-    } else if (sdN.headRel == SDLabel.mark) {
-      sd2aux(sdN).rel = srel_MARK
+    if (modRels(sdN.labelSD)) {
+      sd2aux(sdN).label = label_MERGE
+    } else if (punctRels(sdN.labelSD)) {
+      sd2aux(sdN).label = label_PUNCT
+    } else if (sdN.labelSD == SDLabel.neg) {
+      sd2aux(sdN).label = label_NEG
+    } else if (Set(SDLabel.det, SDLabel.predet, SDLabel.num)(sdN.labelSD)) {
+      sd2aux(sdN).label = label_QUANT
+    } else if (Set(SDLabel.cc, SDLabel.preconj)(sdN.labelSD)) {
+      sd2aux(sdN).label = label_CC
+    } else if (sdN.labelSD == SDLabel.mark) {
+      sd2aux(sdN).label = label_MARK
     }
   }
 
   /* merge NNP */
   for (sdN <- sdtree.linear.nodes; if sdN.pennPOS.startsWith("NNP") && !hasConj(sdN)) {
     val rec = ArrayBuffer.empty[SDTreeNode]
-    def loop(x: SDTreeNode): Unit = if (inNNPRels(x.headRel)) {
+    def loop(x: SDTreeNode): Unit = if (inNNPRels(x.labelSD)) {
       val xp = sdtree.getParent(x)
       if (xp != null) {
         rec.append(x)
         if (xp.pennPOS.startsWith("NNP")) {
-          if (!hasConj(xp)) rec.foreach(sd2aux(_).rel = srel_MERGE)
+          if (!hasConj(xp)) rec.foreach(sd2aux(_).label = label_MERGE)
         } else loop(xp)
       }
     }
@@ -106,32 +106,32 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   }
 
   /* merge conj */
-  for (sdN <- sdtree.linear.nodes; if Set(SDLabel.conj, SDLabel.cc, SDLabel.preconj)(sdN.headRel)) {
+  for (sdN <- sdtree.linear.nodes; if Set(SDLabel.conj, SDLabel.cc, SDLabel.preconj)(sdN.labelSD)) {
     val sdP = sdtree.getParent(sdN)
     if (sdP != null) {
-      if (sd2aux(sdP).rel == srel_MERGE) {
-        sd2aux(sdN).rel = srel_MERGE
+      if (sd2aux(sdP).label == label_MERGE) {
+        sd2aux(sdN).label = label_MERGE
       } else {
         val sc = sdtree.sortedChildren(sdP)
-        if (sc.indexWhere(sd2aux(_).rel == srel_MERGE, sc.indexOf(sdN) + 1) != -1) {
-          sd2aux(sdN).rel = srel_MERGE
+        if (sc.indexWhere(sd2aux(_).label == label_MERGE, sc.indexOf(sdN) + 1) != -1) {
+          sd2aux(sdN).label = label_MERGE
         }
       }
     }
   }
 
   /* possessive */
-  for (sdN <- sdtree.linear.nodes; if sdN.headRel == SDLabel.possessive) {
+  for (sdN <- sdtree.linear.nodes; if sdN.labelSD == SDLabel.possessive) {
     val sdP = sdtree.getParent(sdN)
     if (sdP != null) {
-      if (sd2aux(sdP).rel == srel_MERGE) {
-        sd2aux(sdN).rel = srel_MERGE
-      } else sd2aux(sdP).rel = srel_PUNCT
+      if (sd2aux(sdP).label == label_MERGE) {
+        sd2aux(sdN).label = label_MERGE
+      } else sd2aux(sdP).label = label_PUNCT
     }
   }
 
   /* rcmod */
-  for (sdN <- sdtree.linear.nodes; if sdN.headRel == SDLabel.rcmod) {
+  for (sdN <- sdtree.linear.nodes; if sdN.labelSD == SDLabel.rcmod) {
     val sdP = sdtree.getParent(sdN)
     if (sdP != null) {
       // find a path from a W-word to sdN
@@ -143,11 +143,11 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
           def loop2(x: SDTreeNode): Boolean = {
             val xp = sdtree.getParent(x)
             if (xp == sdN) {
-              if (rec.length == 1 && n.headRel == SDLabel.nsubj && hasCop(sdN)) { // "A, which is B ..."
-                sd2aux(n).rel = srel_PUNCT
-                sd2aux(sdN).rel = SDLabel.appos.toString
+              if (rec.length == 1 && n.labelSD == SDLabel.nsubj && hasCop(sdN)) { // "A, which is B ..."
+                sd2aux(n).label = label_PUNCT
+                sd2aux(sdN).label = SDLabel.appos.toString
               }
-              rec.foreach(sd2aux(_).rel = srel_MERGE)
+              rec.foreach(sd2aux(_).label = label_MERGE)
               false
             } else if (xp == sdP) {
               true
@@ -168,20 +168,20 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   root.setFeature("__mergeTo", root.src)
   root.recur({x =>
     for (c <- x.children[AuxTreeNode]) c.setFeature("__mergeTo",
-      if (c.rel == srel_MERGE) x.getFeature("__mergeTo") else c.src)
+      if (c.label == label_MERGE) x.getFeature("__mergeTo") else c.src)
   }, {x =>
-    if (x.rel == srel_MERGE) {
+    if (x.label == label_MERGE) {
       x.getFeature[ArrayBuffer[SDTreeNode]]("__mergeTo").appendAll(x.src)
     }
     x.removeNames("__mergeTo")
   })
   root.recur({x =>
-    for (c <- x.children.toArray; if c.rel == srel_MERGE) delChild(x, c)
+    for (c <- x.children.toArray; if c.label == label_MERGE) delChild(x, c)
   }, {_ =>})
   root.recur({x =>
-    for (c <- x.children.toArray; if c.rel.charAt(0) == '_') {
-      if (c.rel != srel_PUNCT) {
-        x.scopeInfo.getOrElseUpdate(c.rel, ArrayBuffer.empty) ++= c.src
+    for (c <- x.children.toArray; if c.label.charAt(0) == '_') {
+      if (c.label != label_PUNCT) {
+        x.scopeInfo.getOrElseUpdate(c.label, ArrayBuffer.empty) ++= c.src
       }
       purge(x, c)
     }
@@ -190,21 +190,21 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
   /* next, we set nodeType */
   root.recur({x =>
     for (c <- x.children[AuxTreeNode]) {
-      if (depCRels(c.rel)) c.nodeType = AuxTreeNodeType.Relation
-      if (govCRels(c.rel)) x.nodeType = AuxTreeNodeType.Relation
+      if (depCRels(c.label)) c.nodeType = AuxTreeNodeType.Relation
+      if (govCRels(c.label)) x.nodeType = AuxTreeNodeType.Relation
     }
   }, {_ =>})
 
   /* COP */
   root.recur({x =>
     if (hasCop(x.src.head)) {
-      x.nodeType = if (x.rel == SDLabel.rcmod.toString) AuxTreeNodeType.Relation else AuxTreeNodeType.COP
+      x.nodeType = if (x.label == SDLabel.rcmod.toString) AuxTreeNodeType.Relation else AuxTreeNodeType.COP
     }
   }, {_ =>})
 
   /* conj */
   root.recur({x =>
-    for (c <- x.children; if c.rel == SDLabel.conj.toString) {
+    for (c <- x.children; if c.label == SDLabel.conj.toString) {
       x.nodeType match {
         case AuxTreeNodeType.Relation =>
           if (c.nodeType == AuxTreeNodeType.NN) c.nodeType = AuxTreeNodeType.Relation

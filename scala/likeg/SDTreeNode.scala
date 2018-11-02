@@ -4,6 +4,6 @@ import SDLabel.SDLabel
 import tree.TreeNode
 
 /** Node of a Stanford Dependency Tree. */
-class SDTreeNode(val surf: String, val pennPOS: String, val headRel: SDLabel) extends TreeNode {
+class SDTreeNode(val surf: String, val pennPOS: String, val labelSD: SDLabel) extends TreeNode {
   override def toString: String = surf
 }
