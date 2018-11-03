@@ -79,7 +79,7 @@ Currently, we are able to convert natural language sentences into Existential Gr
 +hassan +whiteside (x7)
 +part +of >pobj:2 (x6 x7)
 +whopping +blocks (x8)
-+who +tallied >rcmod:1 >dobj:2 (x7 x8)
+^who ^tallied >rcmod:1 >dobj:2 (x7 x8)
 
 ```
 
