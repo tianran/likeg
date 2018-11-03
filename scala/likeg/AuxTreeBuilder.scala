@@ -167,7 +167,7 @@ class AuxTreeBuilder(sdtree: Tree[SDTreeNode]) extends TreeBuilder[AuxTreeNode] 
     }
   }
 
-  /* at this stage, we are done with setting rel. */
+  /* at this stage, we are done with setting labels. */
   /* now we actually merge AuxTreeNodes. */
   root.setFeature("__mergeTo", root.src)
   root.recur({x =>

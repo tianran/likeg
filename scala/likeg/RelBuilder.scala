@@ -10,6 +10,8 @@ object RelBuilder {
 
   val Array(nodeUp, nodeDown, nodeCusp, labelUp, labelDown) = Array('-', '+', '^', '<', '>')
 
+  val rcLike: Set[String] = Set(SDLabel.rcmod, SDLabel.partmod, SDLabel.infmod).map(_.toString)
+
   def startUp(arg1: DefVar, l1: String): RelInfo = {
     (arg1, (labelUp, l1), Nil)
   }
@@ -26,7 +28,7 @@ object RelBuilder {
   def goDown(ri: RelInfo, n: AuxTreeNode): RelInfo = {
     val (arg1, sl1, lst) = ri
     val sgn = if (lst.isEmpty) {
-      if (sl1._1 == labelUp) nodeCusp else nodeDown
+      if (sl1._1 == labelUp || rcLike(sl1._2)) nodeCusp else nodeDown
     } else {
       if (lst.head._1 == nodeUp) nodeCusp else nodeDown
     }
@@ -36,6 +38,7 @@ object RelBuilder {
   def turnUp(ri: RelInfo): RelInfo = {
     val (arg1, sl1, (cusp, n) :: tail) = ri
     assert(cusp == nodeCusp)
+    assert(sl1._1 == labelUp)
     (arg1, sl1, (nodeUp, n) :: tail)
   }
 
