@@ -10,9 +10,9 @@ class LikeG(val rootScope: ScopeNode) {
     val vars = ArrayBuffer.empty[DefVar]
     val ret = ArrayBuffer.empty[BiRel[Pred]]
     for (egn <- egns) egn match {
-      case v:DefVar =>
+      case v: DefVar =>
         vars.append(v)
-      case r:BiRel[_] =>
+      case r: BiRel[_] =>
         if (r.pred == null) {
           r.arg1.getOrUpdate[ArrayBuffer[DefVar]]("__==", ArrayBuffer.empty[DefVar]).append(r.arg2)
           r.arg2.getOrUpdate[ArrayBuffer[DefVar]]("__==", ArrayBuffer.empty[DefVar]).append(r.arg1)
@@ -24,7 +24,7 @@ class LikeG(val rootScope: ScopeNode) {
     def recur(x: DefVar): Boolean = {
       val ret = !x.hasFlag("__visited")
       if (ret) {
-        x.id = "x%d".format(counter)
+        x.id = counter
         x.setFlag("__visited")
         if (x.hasFlag("__==")) x.getFeature[IndexedSeq[DefVar]]("__==").foreach(recur)
       }

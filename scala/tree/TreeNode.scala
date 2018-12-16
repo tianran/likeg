@@ -6,9 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 /** minimal information of a tree node. */
 class TreeNode {
 
-  protected[tree] val _c: ArrayBuffer[TreeNode] = ArrayBuffer.empty
+  protected[tree] val ch: ArrayBuffer[TreeNode] = ArrayBuffer.empty
   /** Return children nodes. */
-  def children[N >: this.type <: TreeNode]: IndexedSeq[N] = _c.asInstanceOf[IndexedSeq[N]]
+  def children[N >: this.type <: TreeNode]: IndexedSeq[N] = ch.asInstanceOf[IndexedSeq[N]]
 
   def recur[N >: this.type <: TreeNode](pre: N => Unit, post: N => Unit): Unit = {
     pre(this)
@@ -16,11 +16,11 @@ class TreeNode {
     post(this)
   }
 
-  private[this] val _f = mutable.Map.empty[Any, Any]
-  def getFeature[T](name: Any): T = _f(name).asInstanceOf[T]
-  def setFeature(name: Any, v: Any): Unit = { _f(name) = v }
-  def hasFlag(name: String): Boolean = _f.contains(name)
-  def setFlag(name: String): Unit = { _f(name) = null }
-  def getOrUpdate[T](name: Any, op: => T): T = _f.getOrElseUpdate(name, op).asInstanceOf[T]
-  def removeNames(names: Any*): Unit = names.foreach(_f.remove)
+  private[this] val features = mutable.Map.empty[Any, Any]
+  def getFeature[T](name: Any): T = features(name).asInstanceOf[T]
+  def setFeature(name: Any, v: Any): Unit = { features(name) = v }
+  def hasFlag(name: String): Boolean = features.contains(name)
+  def setFlag(name: String): Unit = { features(name) = null }
+  def getOrUpdate[T](name: Any, op: => T): T = features.getOrElseUpdate(name, op).asInstanceOf[T]
+  def removeNames(names: Any*): Unit = names.foreach(features.remove)
 }

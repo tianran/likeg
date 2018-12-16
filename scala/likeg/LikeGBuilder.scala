@@ -76,12 +76,6 @@ object LikeGBuilder {
       ret
     })
 
-    object Status extends Enumeration {
-      type Status = Value
-      val Inherit, Normal, Core = Value
-    }
-    import Status._
-
     val rootScope = new ScopeNode
     auxtree.root.setFeature("__currentScope", rootScope)
 
@@ -89,10 +83,11 @@ object LikeGBuilder {
       val prevScope = n.getFeature[ScopeNode]("__currentScope")
       val newScope = new ScopeNode
       newScope.addParent(prevScope)
-      for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_QUANT, AuxTreeNode.label_CC)) n.scopeInfo.get(k) match {
-        case Some(v) => newScope.setFeature(k, v)
-        case None => //PASS
-      }
+      for (k <- Array(AuxTreeNode.labelNeg, AuxTreeNode.labelQuant, AuxTreeNode.labelCc))
+        n.scopeInfo.get(k) match {
+          case Some(v) => newScope.setFeature(k, v)
+          case None => //PASS
+        }
       if (n.label == SDLabel.conj.toString) newScope.setFlag("__conj")
       n.setFeature("__currentScope", newScope)
       for (c <- n.children[AuxTreeNode]) {
@@ -121,8 +116,8 @@ object LikeGBuilder {
       prevScope.append(ret)
       val newScope = new ScopeNode
       newScope.addParent(prevScope)
-      n.scopeInfo.get(AuxTreeNode.label_MARK) match {
-        case Some(v) => newScope.setFeature(AuxTreeNode.label_MARK, v)
+      n.scopeInfo.get(AuxTreeNode.labelMark) match {
+        case Some(v) => newScope.setFeature(AuxTreeNode.labelMark, v)
         case None => //PASS
       }
       ret.setFeature("__reification", newScope)
@@ -157,14 +152,15 @@ object LikeGBuilder {
 
     def conjStartDown(p: AuxTreeNode, c: AuxTreeNode): ArrayBuffer[(RelInfo, ScopeNode)] = {
       val conjs = ArrayBuffer(p)
-      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c)); if x.label == SDLabel.conj.toString) {
+      for (x <- auxtree.sortedChildren(p).takeWhile(auxtree.linear.ordering.lt(_, c))
+           if x.label == SDLabel.conj.toString) {
         conjs.appendAll(allConjDesc(x))
       }
 
       val ret = ArrayBuffer.empty[(RelInfo, ScopeNode)]
       val bvars = ArrayBuffer.empty[DefVar]
       if (nnRels(c.label)) {
-        for (x <- conjs) {
+        for (x <- conjs; if x.nodeType != AuxTreeNodeType.Relation) {
           if (x.src.head.pennPOS.startsWith("NNP")) {
             bvars.append(x.getFeature[DefVar]("__normalVar"))
           } else {
@@ -172,14 +168,17 @@ object LikeGBuilder {
           }
         }
       } else {
-        for (x <- conjs) bvars.append(x.getFeature[DefVar]("__normalVar"))
+        for (x <- conjs; if x.nodeType != AuxTreeNodeType.Relation) {
+          bvars.append(x.getFeature[DefVar]("__normalVar"))
+        }
       }
       if (bvars.length >= 2) {
         val avar = new DefVar
         for (bvar <- bvars) {
           bvar.getFeature[ScopeNode]("__ScopeNode").append(equality(bvar, avar))
         }
-        val ppscope = p.getFeature[ScopeNode]("__normalVar").getFeature[ScopeNode]("__ScopeNode").parent
+        val ppscope = p.getFeature[DefVar]("__normalVar")
+          .getFeature[ScopeNode]("__ScopeNode").parent
         ppscope.append(avar)
         ret.append((startDown(avar, c.label), ppscope))
       } else if (bvars.length == 1) {
@@ -190,17 +189,22 @@ object LikeGBuilder {
     }
 
     def conjStartUp(n: AuxTreeNode): ArrayBuffer[RelInfo] = {
-      val ret = if (hasConj(n)) {
+      val vs = for (x <- allConjDesc(n); if x.nodeType != AuxTreeNodeType.Relation) yield {
+        val xvar = x.getFeature[DefVar]("__normalVar")
+        val xscope = xvar.getFeature[ScopeNode]("__ScopeNode")
+        (xvar, xscope)
+      }
+      val ret = if (vs.length >= 2) {
         val avar = new DefVar
-        n.getFeature[DefVar]("__normalVar").getFeature[ScopeNode]("__ScopeNode").parent.append(avar)
-        for (x <- allConjDesc(n)) {
-          val xvar = x.getFeature[DefVar]("__normalVar")
-          val xscope = xvar.getFeature[ScopeNode]("__ScopeNode")
-          xscope.append(equality(xvar, avar))
-        }
+        vs.head._2.parent.append(avar)
+        for ((v, s) <- vs) s.append(equality(v, avar))
         avar
-      } else n.getFeature[DefVar]("__normalVar")
+      } else vs.head._1
       ArrayBuffer(startUp(ret, n.label))
+    }
+
+    object Status extends Enumeration {
+      val Inherit, Normal, Core = Value
     }
 
     auxtree.root.setFeature("__inheritHalf", ArrayBuffer.empty[(RelInfo, ScopeNode)])
@@ -242,7 +246,7 @@ object LikeGBuilder {
 
       n.nodeType match {
         case AuxTreeNodeType.Relation =>
-          n.setFeature("__status", Inherit)
+          n.setFeature("__status", Status.Inherit)
           n.setFeature("__extself", if (clauseRels(n.label)) {
             val svar = scopeVar(n)
             for ((half, scope) <- inherit) {
@@ -255,10 +259,10 @@ object LikeGBuilder {
           n.setFeature("__extconj", ArrayBuffer.empty[(RelInfo, ScopeNode)])
 
           val prevScope = n.getFeature[ScopeNode]("__currentScope")
-          if (n.scopeInfo.contains(AuxTreeNode.label_NEG) || hasConj(n)) {
+          if (n.scopeInfo.contains(AuxTreeNode.labelNeg) || hasConj(n)) {
             val newScope = new ScopeNode
             newScope.addParent(prevScope)
-            for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_CC)) n.scopeInfo.get(k) match {
+            for (k <- Array(AuxTreeNode.labelNeg, AuxTreeNode.labelCc)) n.scopeInfo.get(k) match {
               case Some(v) => newScope.setFeature(k, v)
               case None => //PASS
             }
@@ -270,10 +274,11 @@ object LikeGBuilder {
                 val conjScope = new ScopeNode
                 conjScope.addParent(newScope)
                 conjScope.setFlag("__conj")
-                for (k <- Array(AuxTreeNode.label_NEG, AuxTreeNode.label_CC)) c.scopeInfo.get(k) match {
-                  case Some(v) => conjScope.setFeature(k, v)
-                  case None => //PASS
-                }
+                for (k <- Array(AuxTreeNode.labelNeg, AuxTreeNode.labelCc))
+                  c.scopeInfo.get(k) match {
+                    case Some(v) => conjScope.setFeature(k, v)
+                    case None => //PASS
+                  }
                 conjScope
               } else {
                 newScope
@@ -330,7 +335,7 @@ object LikeGBuilder {
             propagateConj(p, c)
           } else {
             if (p.label == SDLabel.conj.toString && auxtree.linear.ordering.lt(c, p) &&
-              p.getFeature[Status]("__status") == Inherit) {
+              p.getFeature[Status.Value]("__status") == Status.Inherit) {
               ArrayBuffer.empty[(RelInfo, ScopeNode)]
             } else {
               p.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__extconj") ++
@@ -357,23 +362,25 @@ object LikeGBuilder {
     }, {(p, c) =>
       if (p.nodeType == AuxTreeNodeType.Relation) {
         if (c.label == SDLabel.conj.toString && c.nodeType == AuxTreeNodeType.Relation) {
-          (p.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__extconj") ++=
-            c.getFeature[IndexedSeq[(RelInfo, ScopeNode)]]("__extconj")) ++=
-            c.getFeature[IndexedSeq[(RelInfo, ScopeNode)]]("__extself")
-        } else p.getFeature[Status]("__status") match {
-          case Inherit =>
+          if (c.getFeature[Status.Value]("__status") != Status.Inherit) {
+            (p.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__extconj") ++=
+              c.getFeature[IndexedSeq[(RelInfo, ScopeNode)]]("__extconj")) ++=
+              c.getFeature[IndexedSeq[(RelInfo, ScopeNode)]]("__extself")
+          }
+        } else p.getFeature[Status.Value]("__status") match {
+          case Status.Inherit =>
             if (argRels(c.label)) {
               val pscope = p.getFeature[ScopeNode]("__currentScope")
               val cret = c.getFeature[IndexedSeq[RelInfo]]("__retHalf")
               p.setFeature("__extself", for (half <- cret) yield (goDown(half, p), pscope))
-              p.setFeature("__status", if (coreArgRels(c.label)) Core else Normal)
+              p.setFeature("__status", if (coreArgRels(c.label)) Status.Core else Status.Normal)
             }
           case _ =>
             if (coreArgRels(c.label)) {
               val pscope = p.getFeature[ScopeNode]("__currentScope")
               val cret = c.getFeature[IndexedSeq[RelInfo]]("__retHalf")
               p.setFeature("__extself", for (half <- cret) yield (goDown(half, p), pscope))
-              p.setFeature("__status", Core)
+              p.setFeature("__status", Status.Core)
             }
         }
       }
@@ -382,6 +389,8 @@ object LikeGBuilder {
         if (clauseRels(n.label)) {
           val svar = n.getFeature[DefVar]("__scopeVar")
           ArrayBuffer(startUp(svar, n.label))
+        } else if (n.getFeature[Status.Value]("__status") != Status.Inherit) {
+          ArrayBuffer.empty[RelInfo]
         } else {
           for ((half, _) <- n.getFeature[ArrayBuffer[(RelInfo, ScopeNode)]]("__extconj") ++
             n.getFeature[IndexedSeq[(RelInfo, ScopeNode)]]("__extself")) yield turnUp(half)

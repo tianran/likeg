@@ -9,7 +9,7 @@ class Tree[N <: TreeNode](val root: N, val linear: TreeNodeLinearOrder[N]) {
       assert(!n.hasFlag("__visited"))
       n.setFlag("__visited")
       n.children[N].foreach(_.setFeature((this, "parent"), n))
-    }, {_=>})
+    }, {_ => })
     for (n <- linear.nodes) {
       assert(n.hasFlag("__visited"))
       n.removeNames("__visited")
@@ -17,9 +17,11 @@ class Tree[N <: TreeNode](val root: N, val linear: TreeNodeLinearOrder[N]) {
   }
 
   def getParent(n: N): N = n.getFeature((this, "parent"))
-  def sortedChildren(n: N): IndexedSeq[N] = n.getOrUpdate((this, "sortedChildren"), n.children.sorted(linear.ordering))
+  def sortedChildren(n: N): IndexedSeq[N] =
+    n.getOrUpdate((this, "sortedChildren"), n.children.sorted(linear.ordering))
 
-  def recurSorted(pre: N => Unit, preC: (N, N) => Unit, postC: (N, N) => Unit, post: N => Unit, n: N = root): Unit = {
+  def recurSorted(pre: N => Unit, preC: (N, N) => Unit, postC: (N, N) => Unit,
+                  post: N => Unit, n: N = root): Unit = {
     val sc = sortedChildren(n)
     pre(n)
     for (x <- sc) {

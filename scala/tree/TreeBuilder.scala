@@ -19,10 +19,10 @@ class TreeBuilder[N <: TreeNode] {
 
   /** Insert node x at index ni. */
   protected[this] def insert(ni: Int, x: N): Unit = {
-    for (i <- ni until linear.nodes.length) linear._indices(linear.nodes(i)) += 1
+    for (i <- ni until linear.nodes.length) linear.inds(linear.nodes(i)) += 1
     assert(!linear.contains(x))
-    linear._indices(x) = ni
-    linear._nodes.insert(ni, x)
+    linear.inds(x) = ni
+    linear.ns.insert(ni, x)
   }
 
   /** Insert node x before node n. */
@@ -34,36 +34,36 @@ class TreeBuilder[N <: TreeNode] {
   /** Append node x. */
   protected[this] def append(x: N): Unit = {
     assert(!linear.contains(x))
-    linear._indices(x) = linear.nodes.length
-    linear._nodes.append(x)
+    linear.inds(x) = linear.nodes.length
+    linear.ns.append(x)
   }
 
   /** Sort the current tree nodes according to ord */
   protected[this] def sortCurrent(ord: Ordering[N]): Unit = {
     val queue = mutable.PriorityQueue.empty[N](ord.reverse)
-    root.recur({n => queue.enqueue(n)}, {_=>})
+    root.recur({n => queue.enqueue(n)}, {_ => })
     while(queue.nonEmpty) append(queue.dequeue())
   }
 
   /** Add node c as a child of node p. */
   protected[this] def addChild(p: TreeNode, c: TreeNode): Unit = {
-    p._c.append(c)
+    p.ch.append(c)
   }
 
   /** Change the parent of node c from node p to node pnew. */
   protected[this] def changeParent(p: TreeNode, c: TreeNode, pnew: TreeNode): Unit = {
-    p._c.remove(p._c.indexOf(c))
-    pnew._c.append(c)
+    p.ch.remove(p.ch.indexOf(c))
+    pnew.ch.append(c)
   }
 
   /** Delete node c from children of node p; all children of node c rewired to node p. */
   protected[this] def delChild(p: TreeNode, c: TreeNode): Unit = {
-    p._c.remove(p._c.indexOf(c))
-    p._c.appendAll(c.children)
+    p.ch.remove(p.ch.indexOf(c))
+    p.ch.appendAll(c.children)
   }
 
   /** Delete node c from children of node p; all descendants of node c are lost. */
   protected[this] def purge(p: TreeNode, c: TreeNode): Unit = {
-    p._c.remove(p._c.indexOf(c))
+    p.ch.remove(p.ch.indexOf(c))
   }
 }

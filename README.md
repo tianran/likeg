@@ -69,17 +69,17 @@ Currently, we are able to convert natural language sentences into Existential Gr
 * Make conversion:
 ```
 > cat data/sample/miami.sd | scala -cp scala/classes likeg.LikeGBuilder -
-+miami (x1)
-+able >xcomp:2 (x1 x2)
-+to +pull +away +in >pobj:2 (x2 x3)
-+final +period (x4)
-+last +minutes +of >pobj:2 (x3 x4)
-+to +pull +away +with >pobj:2 (x2 x5)
-+outstanding +defensive +work +on >pobj:2 (x5 x6)
-+hassan +whiteside (x7)
-+part +of >pobj:2 (x6 x7)
-+whopping +blocks (x8)
-^who ^tallied >rcmod:1 >dobj:2 (x7 x8)
+\miami (1)
+\was \able 2xcomp (1 2)
+\to \pull \away \in 2pobj (2 3)
+\final \period (4)
+\last \minutes \of 2pobj (3 4)
+\to \pull \away \with 2pobj (2 5)
+\outstanding \defensive \work \on 2pobj (5 6)
+\hassan \whiteside (7)
+\part \of 2pobj (6 7)
+\whopping \blocks (8)
+^who ^tallied 1rcmod 2dobj (7 8)
 
 ```
 

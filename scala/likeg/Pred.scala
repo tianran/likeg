@@ -1,5 +1,5 @@
 package likeg
 
-class Pred(val str: String, val evidence: IndexedSeq[SDTreeNode]) {
-  override def toString: String = str
+class Pred(val words: IndexedSeq[String], val evidence: IndexedSeq[SDTreeNode]) {
+  override def toString: String = words.mkString(" ")
 }

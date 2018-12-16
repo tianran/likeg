@@ -7,7 +7,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object AuxTreeNode {
 
-  val Array(label_MERGE, label_PURGE, label_NEG, label_QUANT, label_CC, label_MARK) =
+  val Array(labelMerge, labelPurge, labelNeg, labelQuant, labelCc, labelMark) =
     Array("_MERGE", "_PURGE", "_NEG", "_QUANT", "_CC", "_MARK")
 
   object AuxTreeNodeType extends Enumeration {
@@ -15,7 +15,8 @@ object AuxTreeNode {
   }
 }
 
-/** Node of an auxiliary tree, converted from Stanford Dependency Tree and can be used for extracting relations. */
+/** Node of an auxiliary tree, converted from Stanford Dependency Tree and
+  *  can be used for extracting relations. */
 class AuxTreeNode extends TreeNode {
   import AuxTreeNode.AuxTreeNodeType
 
